@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYSTEM_OVERRIDE // BRUTE_FORCE</title>
+    <style>
+        /* --- RESET & BASIC SETUP --- */
+        * { box-sizing: border-box; }
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: #050505;
+            color: #0f0;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden; 
+        }
+
+        /* --- CRT VIBE --- */
+        .crt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15),
+                rgba(0, 0, 0, 0.15) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none; 
+            z-index: 10;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.97; }
+            50% { opacity: 1; }
+            100% { opacity: 0.98; }
+        }
+
+        .terminal-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            animation: flicker 0.15s infinite;
+            text-shadow: 0 0 5px #00ff00; 
+        }
+
+        h1 {
+            font-size: 2rem;
+            border-bottom: 2px solid #0f0;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        #game-output {
+            flex-grow: 1;
+            overflow-y: auto;
+            border: 1px solid #333;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #000;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+        
+        /* Scrollbar styling */
+        #game-output::-webkit-scrollbar { width: 8px; }
+        #game-output::-webkit-scrollbar-thumb { background: #0f0; }
+        #game-output::-webkit-scrollbar-track { background: #001100; }
+
+        /* --- VISUAL FEEDBACK BLOCKS (The Wordle Look) --- */
+        .guess-row {
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .digit-block {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #0f0;
+            margin-right: 5px;
+        }
+
+        /* Correct Number, Correct Spot */
+        .status-correct {
+            background-color: #0f0; 
+            color: #000;
+            border-color: #0f0;
+            box-shadow: 0 0 10px #0f0;
+        }
+
+        /* Correct Number, Wrong Spot */
+        .status-exist {
+            background-color: #ffcc00; /* Amber/Yellow */
+            color: #000;
+            border-color: #ffcc00;
+            box-shadow: 0 0 5px #ffcc00;
+        }
+
+        /* Wrong Number */
+        .status-wrong {
+            border-color: #333;
+            color: #555;
+            text-shadow: none;
+        }
+
+        .feedback-text {
+            font-size: 0.9rem;
+            margin-left: 10px;
+            opacity: 0.8;
+        }
+
+        /* --- INPUT AREA --- */
+        .input-area {
+            display: flex;
+            align-items: center;
+            font-size: 1.2rem;
+            border-top: 1px dashed #0f0;
+            padding-top: 15px;
+        }
+
+        .prompt { margin-right: 10px; white-space: nowrap; }
+
+        input[type="text"] {
+            background: transparent;
+            border: none;
+            color: #0f0;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.2rem;
+            flex-grow: 1;
+            outline: none;
+            text-shadow: 0 0 5px #00ff00;
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid #0f0;
+            color: #0f0;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 5px 15px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: bold;
+            text-shadow: 0 0 5px #00ff00; 
+            margin-left: 10px;
+        }
+        
+        button:hover {
+            background: #0f0;
+            color: #000;
+            text-shadow: none;
+        }
+
+        .system-msg { opacity: 0.7; font-style: italic; color: #88ff88;}
+        .win-msg { color: #0ff; font-weight: bold; font-size: 1.2rem; margin-top: 10px; display: block;}
+        .fail-msg { color: #f00; font-weight: bold; font-size: 1.2rem; margin-top: 10px; display: block;}
+
+    </style>
+</head>
+<body>
+
+    <div class="crt-overlay"></div>
+
+    <div class="terminal-container">
+        <h1>>> BRUTE_FORCE.EXE</h1>
+        
+        <div id="game-output">
+            </div>
+
+        <form id="terminal-form" class="input-area" autocomplete="off">
+            <span class="prompt">root@hacker:~$</span>
+            <input type="text" id="user-input" maxlength="4" autocomplete="off" autofocus>
+            <button type="submit">[ SUBMIT ]</button>
+        </form>
+    </div>
+
+    <script>
+        // --- CONFIG ---
+        const CODE_LENGTH = 4;
+        const MAX_ATTEMPTS = 6;
+        
+        // --- VARIABLES ---
+        let secretCode = [];
+        let attempts = 0;
+        let gameActive = true;
+        let rebooting = false;
+
+        // --- DOM ELEMENTS ---
+        const outputDiv = document.getElementById('game-output');
+        const inputField = document.getElementById('user-input');
+        const form = document.getElementById('terminal-form');
+
+        // --- WELCOME MESSAGE ---
+        function showWelcome() {
+            outputDiv.innerHTML = `
+                <div class="system-msg">INITIALIZING SEQUENCE...</div>
+                <div class="system-msg">TARGET SECURED. ENCRYPTION LEVEL: 4-DIGIT PIN.</div>
+                <br>
+                <div>Crack the 4-digit code (0-9). No duplicates.</div>
+                <div style="margin-top:5px;">
+                    <span class="digit-block status-correct">X</span> = Correct Number, Correct Spot<br>
+                    <span class="digit-block status-exist">X</span> = Correct Number, Wrong Spot<br>
+                    <span class="digit-block status-wrong">X</span> = Wrong Number
+                </div>
+                <br>
+                <div id="attempts-left">Attempts Remaining: ${MAX_ATTEMPTS}</div>
+                <br>
+            `;
+        }
+
+        // --- INIT ---
+        function initGame() {
+            showWelcome();
+            
+            // Generate Code
+            let numbers = ['0','1','2','3','4','5','6','7','8','9'];
+            secretCode = [];
+            for (let i = numbers.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
+            }
+            secretCode = numbers.slice(0, CODE_LENGTH);
+            
+            console.log("DevCheats: " + secretCode.join('')); 
+            
+            attempts = 0;
+            gameActive = true;
+            rebooting = false;
+            inputField.disabled = false;
+            inputField.value = '';
+            inputField.focus();
+        }
+
+        // --- CORE LOGIC ---
+        function handleGuess(guess) {
+            if (!gameActive) return;
+
+            // Validation
+            if (guess.length !== CODE_LENGTH || isNaN(guess)) {
+                printRaw(`<div>>> ERROR: INPUT MUST BE ${CODE_LENGTH} DIGITS.</div>`, 'fail-msg');
+                return;
+            }
+            if (new Set(guess).size !== guess.length) {
+                printRaw(`<div>>> ERROR: DUPLICATE DIGITS DETECTED.</div>`, 'fail-msg');
+                return;
+            }
+
+            attempts++;
+            let exactMatches = 0; 
+            
+            // BUILD THE VISUAL BLOCKS
+            let htmlResult = '<div class="guess-row"><span class="prompt">></span>';
+            let guessArr = guess.split('');
+
+            guessArr.forEach((digit, index) => {
+                let statusClass = 'status-wrong'; // Default grey
+                
+                if (digit === secretCode[index]) {
+                    statusClass = 'status-correct'; // Green
+                    exactMatches++;
+                } else if (secretCode.includes(digit)) {
+                    statusClass = 'status-exist'; // Yellow
+                }
+                
+                htmlResult += `<span class="digit-block ${statusClass}">${digit}</span>`;
+            });
+
+            htmlResult += `</div>`;
+            
+            // Append to log
+            let div = document.createElement('div');
+            div.innerHTML = htmlResult;
+            outputDiv.appendChild(div);
+            outputDiv.scrollTop = outputDiv.scrollHeight;
+
+            // Update Attempts
+            const attemptDisplay = document.getElementById('attempts-left');
+            if(attemptDisplay) attemptDisplay.innerText = `Attempts Remaining: ${MAX_ATTEMPTS - attempts}`;
+
+            // Win/Loss Check
+            if (exactMatches === CODE_LENGTH) {
+                endGame(true);
+            } else if (attempts >= MAX_ATTEMPTS) {
+                endGame(false);
+            }
+        }
+
+        function endGame(hasWon) {
+            gameActive = false;
+            inputField.disabled = true;
+            
+            if (hasWon) {
+                printRaw(`ACCESS GRANTED. SYSTEM UNLOCKED.`, 'win-msg');
+            } else {
+                printRaw(`ACCESS DENIED. LOCKDOWN INITIATED.`, 'fail-msg');
+                printRaw(`The code was: ${secretCode.join('')}`, 'fail-msg');
+            }
+            
+            printRaw(`<br>[ Click SUBMIT or Press ENTER to reboot ]`, 'system-msg');
+        }
+
+        function triggerReboot() {
+            rebooting = true;
+            outputDiv.innerHTML = ''; // Clear screen
+            
+            // Print pulsing reboot message
+            const rebootMsg = document.createElement('div');
+            rebootMsg.className = 'system-msg';
+            rebootMsg.innerText = 'REBOOTING SYSTEM...';
+            rebootMsg.style.animation = 'flicker 0.1s infinite';
+            outputDiv.appendChild(rebootMsg);
+
+            // Wait 3 seconds then restart
+            setTimeout(() => {
+                initGame();
+            }, 3000);
+        }
+
+        function printRaw(html, className = '') {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            if(className) div.className = className;
+            outputDiv.appendChild(div);
+            outputDiv.scrollTop = outputDiv.scrollHeight;
+        }
+
+        // --- EVENT LISTENER ---
+        form.addEventListener('submit', (e) => {
+            e.preventDefault(); 
+            
+            // If rebooting, ignore clicks
+            if (rebooting) return;
+
+            // If game ended, trigger the reboot sequence
+            if (!gameActive) {
+                triggerReboot();
+                return;
+            }
+
+            // Otherwise, handle the guess
+            const val = inputField.value;
+            inputField.value = ''; 
+            handleGuess(val);
+        });
+
+        document.addEventListener('click', () => {
+            if (gameActive && !rebooting) inputField.focus();
+        });
+
+        // Start
+        initGame();
+
+    </script>
+</body>
+</html>
