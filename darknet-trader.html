@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DARKNET TRADER v2.0</title>
+    <style>
+        :root {
+            --term-green: #33ff00;
+            --term-dim: #1a8000;
+            --term-bg: #050505;
+            --scanline: rgba(0, 0, 0, 0.5);
+            --color-low: #33ffff;
+            --color-high: #ff3333;
+        }
+
+        body {
+            background-color: var(--term-bg);
+            color: var(--term-green);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+            height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+        }
+
+        /* --- RETRO CRT EFFECTS --- */
+        body::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        .glow { text-shadow: 0 0 5px var(--term-green); }
+        
+        /* --- LAYOUT --- */
+        #terminal {
+            width: 950px; /* Slightly wider for buttons */
+            max-width: 100%;
+            height: 700px;
+            border: 2px solid var(--term-green);
+            padding: 20px;
+            display: grid;
+            /* Title | Stats | Main | Log */
+            grid-template-rows: auto 50px 1fr 150px;
+            gap: 15px;
+            position: relative;
+            background: rgba(0, 20, 0, 0.3);
+            box-shadow: 0 0 20px rgba(51, 255, 0, 0.1);
+            z-index: 10;
+        }
+
+        /* TITLE BANNER */
+        #game-title {
+            text-align: center;
+            font-size: 2rem;
+            margin: 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--term-green);
+            letter-spacing: 5px;
+            background: rgba(51, 255, 0, 0.1);
+        }
+
+        /* HEADER STATS */
+        #header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--term-dim);
+            padding-bottom: 5px;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        /* MAIN GAME AREA */
+        #main-display {
+            display: grid;
+            grid-template-columns: 2.2fr 1fr; /* More space for table */
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        /* PANELS */
+        .panel {
+            border: 1px solid var(--term-dim);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            position: relative; /* Fix for alignment */
+        }
+
+        .panel-title {
+            background: var(--term-dim);
+            color: #000;
+            padding: 5px;
+            /* Negative margin allows it to sit flush with the border */
+            margin: -10px -10px 10px -10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        /* LEGEND */
+        .legend {
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            border-bottom: 1px dashed var(--term-dim);
+            padding-bottom: 5px;
+        }
+        .legend span { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 8px; height: 8px; display: inline-block; }
+
+        /* MARKET TABLE */
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th { text-align: left; border-bottom: 1px dashed var(--term-dim); padding: 5px; }
+        td { padding: 5px; border-bottom: 1px solid #111; vertical-align: middle; }
+        tr:hover { background: rgba(51, 255, 0, 0.1); }
+
+        .btn-group { display: flex; gap: 4px; }
+        
+        .btn-action {
+            background: transparent;
+            border: 1px solid var(--term-green);
+            color: var(--term-green);
+            cursor: pointer;
+            padding: 2px 6px;
+            font-family: inherit;
+            font-size: 0.8rem;
+            min-width: 35px;
+        }
+        .btn-action:hover { background: var(--term-green); color: #000; }
+        .btn-max { border-color: var(--term-dim); color: var(--term-dim); }
+        .btn-max:hover { background: var(--term-dim); color: #fff; }
+
+        /* SIDEBAR (LOCATIONS) */
+        #loc-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex-grow: 1;
+        }
+
+        .loc-btn {
+            background: transparent;
+            border: 1px solid var(--term-dim);
+            color: var(--term-dim);
+            padding: 8px;
+            text-align: left;
+            cursor: pointer;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+        .loc-btn:hover { border-color: var(--term-green); color: var(--term-green); padding-left: 15px; }
+        .loc-btn.active { background: var(--term-green); color: #000; border-color: var(--term-green); pointer-events: none;}
+
+        #debt-area {
+            margin-top: auto;
+            border-top: 1px dashed var(--term-dim);
+            padding-top: 10px;
+            text-align: center;
+        }
+
+        /* LOG AREA */
+        #log-container {
+            border: 1px solid var(--term-dim);
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column-reverse; /* Newest messages at bottom/start */
+            background: #000;
+        }
+        .log-entry { margin-bottom: 4px; }
+        .log-bad { color: var(--color-high); }
+        .log-good { color: #ffff33; }
+        .log-info { color: #888; }
+
+        /* MODALS */
+        #modal-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            display: none; /* Hidden by default */
+        }
+        .modal-content {
+            border: 2px solid var(--term-green);
+            padding: 40px;
+            text-align: center;
+            max-width: 400px;
+            background: #000;
+            box-shadow: 0 0 30px var(--term-dim);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="terminal" class="glow">
+        
+        <h1 id="game-title">DARKNET TRADER</h1>
+
+        <div id="header">
+            <div>DAY: <span id="day-display">1</span>/30</div>
+            <div>LOC: <span id="loc-display">LOCALHOST</span></div>
+            <div>SPACE: <span id="space-display">0</span>/100</div>
+            <div>CREDITS: <span id="cash-display">2000</span></div>
+            <div style="color:var(--color-high)">DEBT: <span id="debt-display">5000</span></div>
+        </div>
+
+        <div id="main-display">
+            <div class="panel">
+                <div class="panel-title">/// DARKNET MARKET ///</div>
+                
+                <div class="legend">
+                    <span><div class="dot" style="background:var(--color-low)"></div> LOW PRICE (BUY)</span>
+                    <span><div class="dot" style="background:var(--color-high)"></div> HIGH PRICE (SELL)</span>
+                </div>
+
+                <table id="market-table">
+                    <thead>
+                        <tr>
+                            <th>ITEM</th>
+                            <th>PRICE</th>
+                            <th>OWNED</th>
+                            <th style="text-align: right;">ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="market-body">
+                        </tbody>
+                </table>
+            </div>
+
+            <div id="sidebar" class="panel">
+                <div class="panel-title">/// PROXY HOP ///</div>
+                <div id="loc-list">
+                    </div>
+
+                <div id="debt-area">
+                    <p>SYNDICATE LOAN</p>
+                    <button class="btn-action" onclick="payDebt()" style="width:100%; padding: 10px;">PAY DEBT</button>
+                    <p style="font-size: 0.7rem; color: #666; margin-top:5px;">Daily Interest: 5%</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="log-container">
+            <div class="log-entry">> System Initialized... Welcome to the Darknet.</div>
+        </div>
+    </div>
+
+    <div id="modal-overlay" style="display:flex;">
+        <div class="modal-content">
+            <h1 id="modal-title">DARKNET TRADER</h1>
+            <p id="modal-msg">
+                You have 30 days to pay off your 10,000 credit debt to the Syndicate.<br><br>
+                Buy low. Sell high. Don't get traced.
+            </p>
+            <button class="btn-action" style="font-size:1.2rem; padding:10px 20px; margin-top:20px;" onclick="startGame()">JACK IN</button>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const MAX_DAYS = 30;
+        const MAX_SPACE = 100;
+        const INTEREST_RATE = 0.05; // 5% daily
+        
+        const LOCATIONS = [
+            "LOCALHOST", "SILICON_VALLEY", "TOKYO_NODE", 
+            "MOSCOW_VPN", "LANGLEY_DB", "THE_PENTAGON"
+        ];
+
+        // Items: Name, Min Price, Max Price
+        const ITEMS = [
+            { id: 'spam', name: 'SPAM LISTS', min: 10, max: 60 },
+            { id: 'cc', name: 'STOLEN CCs', min: 150, max: 400 },
+            { id: 'warez', name: '0-DAY WAREZ', min: 500, max: 1200 },
+            { id: 'crypto', name: 'UNWASHED BTC', min: 1000, max: 4500 },
+            { id: 'ai', name: 'MILITARY AI', min: 5000, max: 15000 },
+        ];
+
+        // --- STATE ---
+        let state = {
+            day: 1,
+            cash: 2000,
+            debt: 5000,
+            location: 0,
+            inventory: {},
+            prices: {}
+        };
+
+        // Initialize Inventory
+        ITEMS.forEach(i => state.inventory[i.id] = 0);
+
+        // --- DOM ELEMENTS ---
+        const els = {
+            day: document.getElementById('day-display'),
+            loc: document.getElementById('loc-display'),
+            space: document.getElementById('space-display'),
+            cash: document.getElementById('cash-display'),
+            debt: document.getElementById('debt-display'),
+            marketBody: document.getElementById('market-body'),
+            locList: document.getElementById('loc-list'),
+            log: document.getElementById('log-container'),
+            modal: document.getElementById('modal-overlay'),
+            mTitle: document.getElementById('modal-title'),
+            mMsg: document.getElementById('modal-msg')
+        };
+
+        // --- CORE FUNCTIONS ---
+
+        function startGame() {
+            state.day = 1;
+            state.cash = 2000;
+            state.debt = 10000;
+            state.location = 0;
+            ITEMS.forEach(i => state.inventory[i.id] = 0);
+            
+            els.modal.style.display = 'none';
+            els.log.innerHTML = '';
+            log("Connection established. Good luck, runner.");
+            
+            renderLocs();
+            travel(0, true);
+        }
+
+        function updatePrices() {
+            ITEMS.forEach(item => {
+                let price = Math.floor(Math.random() * (item.max - item.min + 1)) + item.min;
+                
+                const chance = Math.random();
+                if (chance > 0.9) {
+                    price *= 3;
+                    log(`MARKET ALERT: Demand for ${item.name} is sky high!`, 'good');
+                } else if (chance < 0.1) {
+                    price = Math.floor(price / 2);
+                    log(`MARKET ALERT: ${item.name} market crashed!`, 'bad');
+                }
+
+                state.prices[item.id] = price;
+            });
+        }
+
+        function travel(locIndex, isStart = false) {
+            if (!isStart && locIndex === state.location) return;
+
+            if (!isStart) {
+                state.day++;
+                const interest = Math.floor(state.debt * INTEREST_RATE);
+                state.debt += interest;
+                handleRandomEvent();
+            }
+
+            if (state.day > MAX_DAYS) {
+                endGame(false);
+                return;
+            }
+
+            state.location = locIndex;
+            updatePrices();
+            updateUI();
+            log(!isStart ? `Tunneling to ${LOCATIONS[locIndex]}...` : `Connected to ${LOCATIONS[locIndex]}`);
+        }
+
+        function handleRandomEvent() {
+            const roll = Math.random();
+            if (roll < 0.10) {
+                const loss = Math.floor(state.cash * 0.15);
+                state.cash -= loss;
+                log(`SECURITY BREACH! Ransomware attack. You lost ${loss} credits.`, 'bad');
+            } else if (roll > 0.90) {
+                const gain = Math.floor(Math.random() * 500) + 100;
+                state.cash += gain;
+                log(`DATA MINING: You found a stray wallet with ${gain} credits.`, 'good');
+            } else if (roll > 0.95 && state.inventory[ITEMS[0].id] > 0) {
+                 log(`FBI RAID! You dumped your ${ITEMS[0].name} to avoid capture.`, 'bad');
+                 state.inventory[ITEMS[0].id] = 0;
+            }
+        }
+
+        // --- BUY/SELL LOGIC ---
+
+        function buy(id, amount = 1) {
+            const price = state.prices[id];
+            const currentSpace = Object.values(state.inventory).reduce((a, b) => a + b, 0);
+
+            if (state.cash >= price * amount && currentSpace + amount <= MAX_SPACE) {
+                state.cash -= price * amount;
+                state.inventory[id] += amount;
+                updateUI();
+            } else {
+                // If trying to buy 1 but fail
+                if(amount === 1) log("ERROR: Insufficient funds or storage full.", 'info');
+            }
+        }
+
+        function buyMax(id) {
+            const price = state.prices[id];
+            const currentSpace = Object.values(state.inventory).reduce((a, b) => a + b, 0);
+            const spaceLeft = MAX_SPACE - currentSpace;
+            const maxAfford = Math.floor(state.cash / price);
+            
+            const amount = Math.min(spaceLeft, maxAfford);
+            
+            if (amount > 0) {
+                buy(id, amount);
+            } else {
+                log("ERROR: Cannot afford or no space.", 'info');
+            }
+        }
+
+        function sell(id, amount = 1) {
+            const price = state.prices[id];
+            if (state.inventory[id] >= amount) {
+                state.cash += price * amount;
+                state.inventory[id] -= amount;
+                updateUI();
+            }
+        }
+
+        function sellMax(id) {
+            const amount = state.inventory[id];
+            if (amount > 0) {
+                sell(id, amount);
+            }
+        }
+
+        function payDebt() {
+            if (state.cash > 0 && state.debt > 0) {
+                const amount = Math.min(state.cash, state.debt);
+                state.cash -= amount;
+                state.debt -= amount;
+                updateUI();
+                log(`TRANSFER COMPLETE: Paid ${amount} to Syndicate.`);
+                
+                if (state.debt <= 0) {
+                    log("DEBT CLEARED! You are free.", 'good');
+                }
+            }
+        }
+
+        // --- UI RENDERING ---
+
+        function updateUI() {
+            els.day.innerText = state.day;
+            els.loc.innerText = LOCATIONS[state.location];
+            els.cash.innerText = state.cash;
+            els.debt.innerText = state.debt;
+            
+            const spaceUsed = Object.values(state.inventory).reduce((a, b) => a + b, 0);
+            els.space.innerText = spaceUsed;
+
+            els.marketBody.innerHTML = '';
+            ITEMS.forEach(item => {
+                const row = document.createElement('tr');
+                const price = state.prices[item.id];
+                const owned = state.inventory[item.id];
+                
+                let priceColor = 'var(--term-green)';
+                let range = item.max - item.min;
+                if (price <= item.min + (range * 0.2)) priceColor = 'var(--color-low)'; 
+                if (price >= item.max - (range * 0.2)) priceColor = 'var(--color-high)';
+
+                row.innerHTML = `
+                    <td>${item.name}</td>
+                    <td style="color:${priceColor}">${price}</td>
+                    <td>${owned}</td>
+                    <td style="text-align: right;">
+                        <div class="btn-group" style="justify-content: flex-end;">
+                            <button class="btn-action" onclick="buy('${item.id}', 1)">BUY</button>
+                            <button class="btn-action btn-max" onclick="buyMax('${item.id}')">ALL</button>
+                            <span style="width:10px"></span>
+                            <button class="btn-action" onclick="sell('${item.id}', 1)">SELL</button>
+                            <button class="btn-action btn-max" onclick="sellMax('${item.id}')">ALL</button>
+                        </div>
+                    </td>
+                `;
+                els.marketBody.appendChild(row);
+            });
+
+            renderLocs();
+        }
+
+        function renderLocs() {
+            els.locList.innerHTML = '';
+            LOCATIONS.forEach((loc, index) => {
+                const btn = document.createElement('button');
+                btn.className = `loc-btn ${index === state.location ? 'active' : ''}`;
+                btn.innerText = `> ${loc}`;
+                btn.onclick = () => travel(index);
+                els.locList.appendChild(btn);
+            });
+        }
+
+        function log(msg, type='') {
+            const div = document.createElement('div');
+            div.className = `log-entry log-${type}`;
+            div.innerText = `[${state.day}] ${msg}`;
+            els.log.prepend(div);
+        }
+
+        function endGame(victory) {
+            els.modal.style.display = 'flex';
+            if (state.debt <= 0) {
+                els.mTitle.innerText = "MISSION ACCOMPLISHED";
+                els.mTitle.style.color = "var(--term-green)";
+                els.mMsg.innerHTML = `You paid the debt and escaped with ${state.cash} credits.<br>Legendary Status Achieved.`;
+            } else {
+                els.mTitle.innerText = "TERMINATED";
+                els.mTitle.style.color = "var(--color-high)";
+                els.mMsg.innerHTML = `Time's up. The Syndicate found your physical location.<br>Debt Unpaid: ${state.debt}`;
+            }
+        }
+
+        setInterval(() => {
+            if(state.debt <= 0 && state.day >= MAX_DAYS) endGame(true);
+        }, 1000);
+
+    </script>
+</body>
+</html>
