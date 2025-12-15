@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subnet Calculator</title>
+    <style>
+        :root {
+            --terminal-green: #33ff00;
+            --terminal-bg: #050505;
+            --terminal-dim: #1a5c00;
+            --glow: 0 0 10px rgba(51, 255, 0, 0.7);
+            /* Toned down scanline color opacity from 0.5 to 0.25 */
+            --scan-line-color: rgba(0, 0, 0, 0.25);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--terminal-bg);
+            color: var(--terminal-green);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            text-transform: uppercase;
+        }
+
+        /* CRT Effects style adjusted */
+        .crt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            /* Increased spacing from 3px to 4px for a cleaner look */
+            background: repeating-linear-gradient(
+                0deg,
+                var(--scan-line-color),
+                var(--scan-line-color) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .crt-flicker {
+            animation: flicker 0.15s infinite;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(51, 255, 0, 0.02);
+            pointer-events: none;
+            z-index: 9;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.9; }
+            50% { opacity: 1.0; }
+            100% { opacity: 0.95; }
+        }
+
+        /* Container */
+        .terminal-window {
+            width: 100%;
+            max-width: 600px;
+            border: 2px solid var(--terminal-green);
+            padding: 20px;
+            box-shadow: var(--glow), inset 0 0 20px rgba(51, 255, 0, 0.2);
+            background-color: #000;
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            text-align: center;
+            border-bottom: 2px dashed var(--terminal-green);
+            padding-bottom: 10px;
+            margin-top: 0;
+            text-shadow: var(--glow);
+            letter-spacing: 2px;
+        }
+
+        /* Input Section */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input {
+            background: transparent;
+            border: 1px solid var(--terminal-green);
+            color: var(--terminal-green);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.1rem;
+            padding: 10px;
+            width: 100%;
+            outline: none;
+            box-shadow: 0 0 5px rgba(51, 255, 0, 0.2);
+        }
+
+        input:focus {
+            background: rgba(51, 255, 0, 0.1);
+            box-shadow: var(--glow);
+        }
+
+        button {
+            background: var(--terminal-green);
+            color: #000;
+            border: none;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            font-size: 1.1rem;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #ccffcc;
+            box-shadow: var(--glow);
+        }
+
+        button:active {
+            transform: translateY(2px);
+        }
+
+        /* Results Table */
+        .results {
+            display: none; /* Hidden by default */
+            margin-top: 20px;
+            border-top: 1px solid var(--terminal-dim);
+            padding-top: 10px;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dotted var(--terminal-dim);
+        }
+
+        .data-label {
+            opacity: 0.8;
+        }
+
+        .data-value {
+            text-shadow: var(--glow);
+            font-weight: bold;
+        }
+
+        .binary-view {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-top: 4px;
+            text-align: right;
+            letter-spacing: 1px;
+        }
+
+        .error-msg {
+            color: red;
+            text-shadow: 0 0 5px red;
+            text-align: center;
+            display: none;
+            margin-top: 10px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="crt-overlay"></div>
+    <div class="crt-flicker"></div>
+
+    <div class="terminal-window">
+        <h1>/// SUBNET CALCULATOR ///</h1>
+        
+        <div class="input-group">
+            <input type="text" id="ipInput" placeholder="IP Address (e.g. 192.168.1.1)" autocomplete="off">
+            <input type="number" id="cidrInput" placeholder="/24" min="0" max="32" style="width: 80px;">
+        </div>
+        
+        <button onclick="calculateSubnet()">[ EXECUTE ]</button>
+        <div id="errorBox" class="error-msg">ERROR: INVALID INPUT DETECTED</div>
+
+        <div id="resultsArea" class="results">
+            <div class="data-row">
+                <span class="data-label">Network Address:</span>
+                <div>
+                    <div class="data-value" id="resNet"></div>
+                    <div class="binary-view" id="binNet"></div>
+                </div>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Broadcast Address:</span>
+                <div>
+                    <div class="data-value" id="resBroad"></div>
+                    <div class="binary-view" id="binBroad"></div>
+                </div>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Subnet Mask:</span>
+                <div>
+                    <div class="data-value" id="resMask"></div>
+                    <div class="binary-view" id="binMask"></div>
+                </div>
+            </div>
+            <div class="data-row">
+                <span class="data-label">First Usable:</span>
+                <span class="data-value" id="resFirst"></span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Last Usable:</span>
+                <span class="data-value" id="resLast"></span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Total Hosts:</span>
+                <span class="data-value" id="resHosts"></span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Usable Hosts:</span>
+                <span class="data-value" id="resUsable"></span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">IP Class:</span>
+                <span class="data-value" id="resClass"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function ipToLong(ip) {
+            let parts = ip.split('.');
+            if (parts.length !== 4) return null;
+            // Validate that each part is a number between 0-255
+            for (let i = 0; i < 4; i++) {
+                let num = parseInt(parts[i]);
+                if (isNaN(num) || num < 0 || num > 255) return null;
+            }
+            return ((parseInt(parts[0]) << 24) | (parseInt(parts[1]) << 16) | (parseInt(parts[2]) << 8) | parseInt(parts[3])) >>> 0;
+        }
+
+        function longToIp(long) {
+            return [
+                (long >>> 24) & 0xFF,
+                (long >>> 16) & 0xFF,
+                (long >>> 8) & 0xFF,
+                long & 0xFF
+            ].join('.');
+        }
+
+        function longToBinary(long) {
+            let bin = long.toString(2).padStart(32, '0');
+            // Add dots every 8 bits for readability
+            return bin.match(/.{1,8}/g).join('.');
+        }
+
+        function calculateSubnet() {
+            const ipStr = document.getElementById('ipInput').value.trim();
+            const cidrStr = document.getElementById('cidrInput').value.trim();
+            const errorBox = document.getElementById('errorBox');
+            const resultsArea = document.getElementById('resultsArea');
+
+            // Basic Validation
+            const ipLong = ipToLong(ipStr);
+            let cidr = parseInt(cidrStr);
+
+            if (ipLong === null || isNaN(cidr) || cidr < 0 || cidr > 32) {
+                errorBox.style.display = 'block';
+                resultsArea.style.display = 'none';
+                return;
+            }
+
+            errorBox.style.display = 'none';
+            resultsArea.style.display = 'block';
+
+            // Calculations
+            const mask = (0xFFFFFFFF << (32 - cidr)) >>> 0;
+            const network = (ipLong & mask) >>> 0;
+            const broadcast = (network | (~mask)) >>> 0;
+
+            // Handle edge cases for /31 and /32 where usable hosts differ standard logic
+            const firstUsable = (cidr >= 31) ? network : (network + 1) >>> 0;
+            const lastUsable = (cidr >= 31) ? broadcast : (broadcast - 1) >>> 0;
+
+            const totalHosts = Math.pow(2, 32 - cidr);
+            let usableHosts = (cidr >= 31) ? 0 : totalHosts - 2;
+            if (cidr === 31) usableHosts = 2; // RFC 3021 point-to-point links
+            if (cidr === 32) usableHosts = 1;
+
+
+            // Determine Class
+            const firstOctet = parseInt(ipStr.split('.')[0]);
+            let ipClass = 'UNKNOWN';
+            if (firstOctet >= 1 && firstOctet <= 126) ipClass = 'A';
+            else if (firstOctet >= 128 && firstOctet <= 191) ipClass = 'B';
+            else if (firstOctet >= 192 && firstOctet <= 223) ipClass = 'C';
+            else if (firstOctet >= 224 && firstOctet <= 239) ipClass = 'D (Multicast)';
+            else if (firstOctet >= 240 && firstOctet <= 254) ipClass = 'E (Experimental)';
+
+            // Update UI
+            document.getElementById('resNet').textContent = longToIp(network);
+            document.getElementById('binNet').textContent = longToBinary(network);
+
+            document.getElementById('resBroad').textContent = longToIp(broadcast);
+            document.getElementById('binBroad').textContent = longToBinary(broadcast);
+
+            document.getElementById('resMask').textContent = longToIp(mask);
+            document.getElementById('binMask').textContent = longToBinary(mask);
+
+            document.getElementById('resFirst').textContent = longToIp(firstUsable);
+            document.getElementById('resLast').textContent = longToIp(lastUsable);
+            
+            document.getElementById('resHosts').textContent = totalHosts.toLocaleString();
+            document.getElementById('resUsable').textContent = usableHosts.toLocaleString();
+            document.getElementById('resClass').textContent = ipClass;
+        }
+    </script>
+</body>
+</html>
