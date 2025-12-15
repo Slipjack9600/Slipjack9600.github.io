@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Domain Parked | Cybersecurity Resources</title>
+    <style>
+        /* CSS Reset and Basic Variables */
+        :root {
+            --bg-color: #0f172a;       /* Dark Blue/Slate Background */
+            --card-bg: #1e293b;        /* Slightly lighter card background */
+            --text-primary: #f8fafc;   /* Almost white text */
+            --text-secondary: #94a3b8; /* Muted gray text */
+            --accent: #38bdf8;         /* Cyan/Blue accent color */
+            --accent-hover: #0ea5e9;   /* Darker accent for hover */
+            --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Container for main content */
+        .container {
+            width: 100%;
+            max-width: 800px;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        /* Header Styles */
+        header {
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        p.subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        /* Grid for Links */
+        .link-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            width: 100%;
+        }
+
+        /* Card Styles */
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--accent);
+        }
+
+        .card p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 4rem;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        /* Utility: Terminal-like cursor effect */
+        .cursor::after {
+            content: '_';
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            h1 { font-size: 2rem; }
+            .container { padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>System Status: <span style="color:var(--accent)">Online</span><span class="cursor"></span></h1>
+            <p class="subtitle">This domain is currently parked. Check out these resources in the meantime.</p>
+        </header>
+
+        <div class="link-grid">
+            <a href="https://www.hackerone.com/" target="_blank" class="card">
+                <h2>HackerOne</h2>
+                <p>The #1 hacker-powered security platform. Bug bounties and vulnerability disclosure.</p>
+            </a>
+
+            <a href="https://news.ycombinator.com/" target="_blank" class="card">
+                <h2>Hacker News</h2>
+                <p>Y Combinator's news aggregator. Essential reading for computer science and entrepreneurship.</p>
+            </a>
+
+            <a href="https://www.cisa.gov/" target="_blank" class="card">
+                <h2>CISA</h2>
+                <p>Cybersecurity & Infrastructure Security Agency. US Gov alerts, tips, and resources.</p>
+            </a>
+
+            <a href="https://owasp.org/" target="_blank" class="card">
+                <h2>OWASP</h2>
+                <p>The Open Worldwide Application Security Project. Home of the Top 10 security risks.</p>
+            </a>
+
+            <a href="https://thehackernews.com/" target="_blank" class="card">
+                <h2>The Hacker News</h2>
+                <p>A widely-read and trusted source for the latest cybersecurity news and technical coverage.</p>
+            </a>
+
+            <a href="https://krebsonsecurity.com/" target="_blank" class="card">
+                <h2>Krebs on Security</h2>
+                <p>In-depth investigative journalism on cybercrime and security by Brian Krebs.</p>
+            </a>
+        </div>
+
+        <footer>
+            &copy; <script>document.write(new Date().getFullYear())</script> Localhost Operations
+        </footer>
+    </div>
+
+</body>
+</html>
