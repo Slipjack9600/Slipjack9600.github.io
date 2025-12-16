@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cybersecurity Resume</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            /* Color Palette - Dark Slate & Neon Cyan */
+            --bg-color: #f1f1fe;
+            --card-bg: #e1e1f2;
+            --text-primary: #0f172a;
+            --text-secondary: #3d4294;
+            --accent: #408ea3; /* Light Cyan */
+            --accent-glow: rgba(56, 189, 248, 0.3);
+            --border-color: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        a { text-decoration: none; color: inherit; transition: 0.3s; }
+        ul { list-style: none; }
+
+        /* --- Layout --- */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* --- Header Section --- */
+        header {
+            margin-bottom: 60px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 40px;
+        }
+
+        .status-bar {
+            font-size: 0.85rem;
+            color: var(--accent);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            height: 10px;
+            width: 10px;
+            background-color: #22c55e; /* Green for 'Online' */
+            border-radius: 50%;
+            box-shadow: 0 0 10px #22c55e;
+            animation: pulse 2s infinite;
+        }
+
+        h1 {
+            font-size: 3rem;
+            letter-spacing: -1px;
+            margin-bottom: 10px;
+        }
+
+        .role-title {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            min-height: 1.6em; /* Prevents layout shift during typing effect */
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            background-color: var(--accent);
+            animation: blink 1s infinite;
+        }
+
+        .contact-info {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .contact-info a:hover {
+            color: var(--accent);
+            text-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        /* --- Section Styling --- */
+        section {
+            margin-bottom: 60px;
+            opacity: 0; /* For fade-in animation */
+            transform: translateY(20px);
+            animation: fadeInUp 0.8s forwards;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: var(--accent);
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+            margin-left: 20px;
+        }
+
+        /* --- Skills Tags --- */
+        .skills-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .skill-tag {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .skill-tag:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px var(--accent-glow);
+            transform: translateY(-2px);
+        }
+
+        /* --- Experience Timeline --- */
+        .job-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 25px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            transition: 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .job-card:hover {
+            border-color: var(--text-secondary);
+        }
+
+        .job-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--accent);
+            opacity: 0.5;
+        }
+
+        .job-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .job-title { font-size: 1.2rem; font-weight: 600; }
+        .company { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+        .date { color: var(--text-secondary); font-size: 0.9rem; }
+
+        .job-details li {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+            color: #030329;
+        }
+
+        .job-details li::before {
+            content: '>';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        /* --- Certifications Grid --- */
+        .cert-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .cert-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .cert-icon {
+            font-size: 2rem;
+            color: var(--accent);
+        }
+
+        /* --- Animations --- */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        @keyframes fadeInUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            h1 { font-size: 2.2rem; }
+            .job-header { flex-direction: column; gap: 5px; }
+            .contact-info { flex-direction: column; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div class="status-bar mono">
+                <div class="status-dot"></div>
+                <span>STATUS: AVAILABLE FOR HIRE</span>
+            </div>
+            <h1 id="name">ALEXANDER DAVE</h1>
+            <div class="role-title mono">
+                <span id="typing-text"></span><span class="cursor">&nbsp;</span>
+            </div>
+            
+            <div class="contact-info">
+                <a href="mailto:luke@lukehandy.com"><i class="fas fa-envelope"></i> luke@lukehandy.com</a>
+                <a href="https://linkedin.com/in/luke-handy"><i class="fab fa-linkedin"></i> linkedin.com/in/luke-handy</a>
+                <a href="https://github.com/Slipjack9600"><i class="fab fa-github"></i> github.com/Slipjack9600</a>
+                <a href="#"><i class="fas fa-globe"></i> lukehandy.com</a>
+            </div>
+        </header>
+
+        <section style="animation-delay: 0.1s">
+            <h2 class="section-title mono">01 // SUMMARY</h2>
+            <p>
+                Results-driven Cybersecurity Analyst with 5+ years of experience in Threat Intelligence and Incident Response. Proven track record of securing enterprise networks and reducing vulnerability risks by 40%. Adept at translating complex security concepts into actionable business strategies.
+            </p>
+        </section>
+
+        <section style="animation-delay: 0.2s">
+            <h2 class="section-title mono">02 // TECHNICAL ARSENAL</h2>
+            <div class="skills-grid mono">
+                <div class="skill-tag">Network Security</div>
+                <div class="skill-tag">Penetration Testing</div>
+                <div class="skill-tag">Python & Bash Scripting</div>
+                <div class="skill-tag">SIEM (Splunk)</div>
+                <div class="skill-tag">Cloud Security (AWS/Azure)</div>
+                <div class="skill-tag">Incident Response</div>
+                <div class="skill-tag">Forensics</div>
+                <div class="skill-tag">Risk Compliance (NIST)</div>
+            </div>
+        </section>
+
+        <section style="animation-delay: 0.3s">
+            <h2 class="section-title mono">03 // MISSION HISTORY</h2>
+            
+            <div class="job-card">
+                <div class="job-header">
+                    <div>
+                        <div class="job-title">Senior Security Analyst</div>
+                        <div class="company">CYBERCORP INC.</div>
+                    </div>
+                    <div class="date mono">2021 - PRESENT</div>
+                </div>
+                <ul class="job-details">
+                    <li>Led a team of 5 analysts in 24/7 SOC operations, handling Tier 3 escalations.</li>
+                    <li>Implemented automated threat hunting scripts using Python, reducing detection time by 30%.</li>
+                    <li>Managed vulnerability assessment programs across 500+ endpoints.</li>
+                </ul>
+            </div>
+
+            <div class="job-card">
+                <div class="job-header">
+                    <div>
+                        <div class="job-title">Network Administrator</div>
+                        <div class="company">TECHSOLUTIONS LTD.</div>
+                    </div>
+                    <div class="date mono">2018 - 2021</div>
+                </div>
+                <ul class="job-details">
+                    <li>Hardened network infrastructure including firewalls, routers, and switches.</li>
+                    <li>Assisted in the migration of on-prem servers to AWS secure cloud environments.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section style="animation-delay: 0.4s">
+            <h2 class="section-title mono">04 // CREDENTIALS</h2>
+            <div class="cert-grid">
+                <div class="cert-card">
+                    <i class="fas fa-shield-alt cert-icon"></i>
+                    <div>
+                        <div class="job-title">CISSP</div>
+                        <div class="date mono">ISC2 - 2023</div>
+                    </div>
+                </div>
+                <div class="cert-card">
+                    <i class="fas fa-user-secret cert-icon"></i>
+                    <div>
+                        <div class="job-title">CEH (Certified Ethical Hacker)</div>
+                        <div class="date mono">EC-Council - 2021</div>
+                    </div>
+                </div>
+                <div class="cert-card">
+                    <i class="fab fa-aws cert-icon"></i>
+                    <div>
+                        <div class="job-title">AWS Security Specialty</div>
+                        <div class="date mono">Amazon - 2022</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; margin-top: 50px;">
+            <p class="mono">END OF LINE_</p>
+        </footer>
+    </div>
+
+    <script>
+        // Typing Effect for Job Title
+        const textElement = document.getElementById('typing-text');
+        const textToType = "Cybersecurity Analyst | OSINT Analyst | Wireless Network Specialist";
+        let index = 0;
+
+        function typeWriter() {
+            if (index < textToType.length) {
+                textElement.textContent += textToType.charAt(index);
+                index++;
+                setTimeout(typeWriter, 50); // Adjust speed here
+            }
+        }
+
+        // Start typing when page loads
+        window.onload = typeWriter;
+    </script>
+</body>
+</html>
