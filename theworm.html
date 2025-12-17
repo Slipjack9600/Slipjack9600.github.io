@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>THE WORM // MALWARE SIMULATOR</title>
+    <style>
+        /* --- CRT AESTHETIC CSS --- */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050505;
+            color: #00FF00;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none; /* Prevent highlighting text while playing */
+        }
+
+        /* The main game container - Holds UI + Canvas */
+        #game-container {
+            position: relative;
+            border: 2px solid #00FF00;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
+            background-color: #000;
+            display: flex;
+            flex-direction: column; 
+        }
+
+        canvas {
+            display: block;
+            background-color: #000;
+        }
+
+        /* UI Elements */
+        #ui-layer {
+            padding: 15px;
+            background-color: #001100; 
+            border-bottom: 2px solid #00FF00; 
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        /* Progress Bar Container */
+        #progress-container {
+            border: 1px solid #00FF00;
+            height: 20px;
+            width: 100%;
+            position: relative;
+            background: #000;
+        }
+
+        /* The actual fill of the bar */
+        #progress-fill {
+            height: 100%;
+            background-color: #00FF00;
+            width: 0%;
+            box-shadow: 0 0 10px #00FF00;
+            transition: width 0.1s linear;
+        }
+
+        #status-row {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 14px;
+            text-shadow: 0 0 5px #00FF00;
+            margin-top: 5px;
+        }
+
+        /* Game Over / Start Screen Overlay */
+        #overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.95);
+            padding: 30px;
+            border: 1px solid #00FF00;
+            box-shadow: 0 0 20px rgba(0,255,0,0.2);
+            display: none; 
+            z-index: 10;
+            width: 80%;
+            max-width: 400px;
+        }
+
+        h1 { margin: 0 0 15px 0; text-shadow: 0 0 10px #00FF00; font-size: 24px; }
+        p { margin: 8px 0; font-size: 14px; line-height: 1.4; }
+        
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+
+        /* Helper to hide the restart text during cooldown */
+        .hidden { visibility: hidden; }
+
+        /* --- SCANLINE EFFECT --- */
+        .scanlines {
+            position: fixed;
+            left: 0; top: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 999;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.3));
+            background-size: 100% 4px;
+        }
+        
+        .vignette {
+            position: fixed;
+            left: 0; top: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 998;
+            background: radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(0,0,0,0.6) 100%);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+
+    <div id="game-container">
+        <div id="ui-layer">
+            <div id="progress-container">
+                <div id="progress-fill"></div>
+            </div>
+            <div id="status-row">
+                <span id="score-text">UPLOAD: 0.0 MB / 100 MB</span>
+                <span id="status-text">SYS: IDLE</span>
+            </div>
+        </div>
+
+        <canvas id="gc" width="600" height="600"></canvas>
+
+        <div id="overlay">
+            <h1 id="overlay-title">INITIATE WORM_V1.0</h1>
+            <p id="overlay-msg-1">OBJECTIVE: UPLOAD 100 MB OF DATA</p>
+            <p id="overlay-msg-2">[WARNING] ANTIVIRUS ACTIVE:<br>DATA DECAYS CONSTANTLY</p>
+            <p id="overlay-msg-3">COLLECT PACKETS TO MAINTAIN CONNECTION</p>
+            <br>
+            <p id="start-prompt" class="blink">PRESS ANY KEY TO EXECUTE</p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gc');
+        const ctx = canvas.getContext('2d');
+        
+        // UI Elements
+        const overlay = document.getElementById('overlay');
+        const overlayTitle = document.getElementById('overlay-title');
+        const scoreText = document.getElementById('score-text');
+        const statusText = document.getElementById('status-text');
+        const progressFill = document.getElementById('progress-fill');
+        const startPrompt = document.getElementById('start-prompt');
+
+        // Grid Settings
+        const gridSize = 20; 
+        const tileCount = canvas.width / gridSize; 
+
+        // Game State Variables
+        let isGameRunning = false;
+        let inputLocked = false; // New lock variable
+        let animationFrameId; 
+        let lastRenderTime = 0;
+        
+        // Speed Settings
+        const minSpeed = 8; 
+        const maxSpeed = 20; 
+        let currentSpeed = minSpeed;
+
+        // Data/Score Settings
+        let dataCollected = 0; 
+        const maxData = 100;   
+        const decayRate = 0.05; 
+        const dataPacketValue = 5; 
+
+        // Snake State
+        let playerX = 10;
+        let playerY = 10;
+        let velocityX = 0;
+        let velocityY = 0;
+        let trail = [];
+        let baseTailLength = 3; 
+
+        // Food State
+        let foodX = 15;
+        let foodY = 15;
+
+        // Loop Logic for decay
+        let decayInterval;
+
+        window.onload = function() {
+            showStartScreen();
+            document.addEventListener('keydown', keyPush);
+        };
+
+        function startDecay() {
+            if (decayInterval) clearInterval(decayInterval);
+            decayInterval = setInterval(decayLogic, 100);
+        }
+
+        function stopDecay() {
+            if (decayInterval) clearInterval(decayInterval);
+        }
+
+        function decayLogic() {
+            if(!isGameRunning) return;
+            if(dataCollected > 0) {
+                dataCollected -= decayRate;
+                if(dataCollected < 0) dataCollected = 0;
+            }
+            updateUI();
+        }
+
+        function gameLoop(currentTime) {
+            animationFrameId = requestAnimationFrame(gameLoop);
+            
+            const secondsSinceLastRender = (currentTime - lastRenderTime) / 1000;
+            
+            let progressRatio = dataCollected / maxData;
+            if(progressRatio > 1) progressRatio = 1;
+            
+            currentSpeed = minSpeed + (progressRatio * (maxSpeed - minSpeed));
+
+            if (secondsSinceLastRender < 1 / currentSpeed) return;
+
+            lastRenderTime = currentTime;
+            update();
+            draw();
+        }
+
+        function update() {
+            if (!isGameRunning) return;
+
+            playerX += velocityX;
+            playerY += velocityY;
+
+            // Wall Collision
+            if (playerX < 0 || playerX > tileCount - 1 || playerY < 0 || playerY > tileCount - 1) {
+                gameOver("FIREWALL IMPACT");
+                return;
+            }
+
+            // Move Trail
+            trail.push({ x: playerX, y: playerY });
+            
+            let desiredLength = baseTailLength + Math.floor(dataCollected / 2);
+            while (trail.length > desiredLength) {
+                trail.shift();
+            }
+
+            // Self Collision
+            if (velocityX !== 0 || velocityY !== 0) {
+                for (let i = 0; i < trail.length - 1; i++) {
+                    if (trail[i].x === playerX && trail[i].y === playerY) {
+                         gameOver("KERNEL PANIC (SELF COLLISION)");
+                         return;
+                    }
+                }
+            }
+
+            // Eat Food
+            if (foodX === playerX && foodY === playerY) {
+                dataCollected += dataPacketValue;
+                if(dataCollected >= maxData) {
+                    gameWin();
+                    return;
+                }
+                
+                // Spawn new food
+                foodX = Math.floor(Math.random() * tileCount);
+                foodY = Math.floor(Math.random() * tileCount);
+                
+                let onBody = true;
+                while (onBody) {
+                    onBody = false;
+                    for(let t of trail) {
+                        if(t.x === foodX && t.y === foodY) {
+                            onBody = true;
+                            foodX = Math.floor(Math.random() * tileCount);
+                            foodY = Math.floor(Math.random() * tileCount);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Snake
+            ctx.fillStyle = "#00FF00"; 
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = "#00FF00";
+
+            for (let i = 0; i < trail.length; i++) {
+                ctx.fillRect(trail[i].x * gridSize, trail[i].y * gridSize, gridSize - 2, gridSize - 2);
+            }
+
+            // Food
+            ctx.fillStyle = "#FFFFFF"; 
+            ctx.shadowColor = "#FFFFFF";
+            ctx.fillRect(foodX * gridSize, foodY * gridSize, gridSize - 2, gridSize - 2);
+            
+            ctx.shadowBlur = 0;
+        }
+
+        function updateUI() {
+            let displayData = Math.min(dataCollected, 100).toFixed(1);
+            scoreText.innerText = `UPLOAD: ${displayData} MB / ${maxData} MB`;
+            
+            let percentage = Math.min((dataCollected / maxData) * 100, 100);
+            progressFill.style.width = percentage + "%";
+
+            if(dataCollected < 5 && isGameRunning) {
+                statusText.innerText = "SYS: CRITICAL LOW DATA";
+                statusText.style.color = "red";
+            } else {
+                statusText.innerText = "SYS: UPLOADING...";
+                statusText.style.color = "#00FF00";
+            }
+        }
+
+        function keyPush(evt) {
+            // IF input is locked (cooldown after win/loss), ignore keypress
+            if (inputLocked) return;
+
+            if (!isGameRunning) {
+                startGame();
+                return;
+            }
+
+            switch (evt.keyCode) {
+                case 37: if (velocityX !== 1) { velocityX = -1; velocityY = 0; } break;
+                case 38: if (velocityY !== 1) { velocityX = 0; velocityY = -1; } break;
+                case 39: if (velocityX !== -1) { velocityX = 1; velocityY = 0; } break;
+                case 40: if (velocityY !== -1) { velocityX = 0; velocityY = 1; } break;
+            }
+        }
+
+        function showStartScreen() {
+            overlay.style.display = 'block';
+            overlayTitle.innerText = "INITIATE WORM_V1.0";
+            startPrompt.style.visibility = 'visible';
+        }
+
+        function startGame() {
+            if(isGameRunning) return;
+            isGameRunning = true;
+            overlay.style.display = 'none';
+            
+            dataCollected = 5; 
+            trail = [];
+            playerX = 10;
+            playerY = 10;
+            velocityX = 0;
+            velocityY = 0;
+            foodX = 15; 
+            foodY = 15;
+
+            startDecay();
+
+            lastRenderTime = 0;
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- END GAME STATE MANAGER ---
+        function endGame(title, msg, sysStatus) {
+            isGameRunning = false;
+            stopDecay();
+            cancelAnimationFrame(animationFrameId);
+            
+            // LOCK INPUT
+            inputLocked = true;
+            startPrompt.style.visibility = 'hidden'; // Hide the "Press Key" text
+
+            overlay.style.display = 'block';
+            overlayTitle.innerText = title;
+            document.querySelector('#overlay-msg-1').innerText = msg;
+            
+            // Clear other messages for clean look
+            document.querySelector('#overlay-msg-2').innerText = "";
+            document.querySelector('#overlay-msg-3').innerText = "";
+            
+            statusText.innerText = sysStatus;
+
+            // UNLOCK INPUT AFTER 3 SECONDS
+            setTimeout(() => {
+                inputLocked = false;
+                startPrompt.style.visibility = 'visible'; // Show text again
+            }, 3000);
+        }
+
+        function gameOver(reason) {
+            endGame("UPLOAD FAILED", "ERROR: " + reason, "SYS: HALTED");
+        }
+
+        function gameWin() {
+            endGame("UPLOAD COMPLETE", "SYSTEM ACCESS GRANTED", "SYS: ROOT ACCESS");
+            
+            // Victory Green Flash
+            document.body.style.backgroundColor = "#002200";
+            setTimeout(() => document.body.style.backgroundColor = "#050505", 500);
+        }
+
+    </script>
+</body>
+</html>
