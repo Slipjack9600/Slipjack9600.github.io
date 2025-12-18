@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PASS CRACKER</title>
+    <style>
+        /* --- CORE VARIABLES --- */
+        :root {
+            --bg-color: #050505;
+            --term-green: #00ff41;
+            --term-dim: #004d14;
+            --term-glow: 0 0 10px #00ff41, 0 0 20px #00ff41;
+            --err-red: #ff3333;
+        }
+
+        /* --- LAYOUT & TYPOGRAPHY --- */
+        body {
+            background-color: var(--bg-color);
+            color: var(--term-green);
+            font-family: 'Courier New', Courier, monospace;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            text-transform: uppercase;
+            user-select: none; 
+        }
+
+        /* --- CRT EFFECTS --- */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.2) 50%,
+                rgba(0,0,0,0.2)
+            );
+            /* CHANGED: 2px for tighter lines */
+            background-size: 100% 2px; 
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .glow-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(0, 255, 65, 0.05) 0%, rgba(0,0,0,0.8) 100%);
+            pointer-events: none;
+            z-index: 9;
+        }
+
+        /* --- GAME CONTAINER --- */
+        #game-container {
+            border: 2px solid var(--term-green);
+            padding: 40px;
+            width: 600px;
+            text-align: center;
+            box-shadow: var(--term-glow);
+            position: relative;
+            background: rgba(0, 20, 0, 0.9);
+            z-index: 5;
+        }
+
+        h1 { margin: 0 0 20px 0; font-size: 2rem; text-shadow: var(--term-glow); animation: flicker 3s infinite; }
+
+        /* --- HUD ELEMENTS --- */
+        .hud-row {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--term-dim);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            font-size: 1rem;
+        }
+
+        #timer { color: #fff; font-weight: bold; }
+        .danger-text { color: var(--err-red); text-shadow: 0 0 5px red; }
+
+        /* --- PASSWORD DISPLAY --- */
+        #password-display {
+            font-size: 2.5rem;
+            letter-spacing: 0.5rem;
+            margin: 30px 0;
+            min-height: 50px;
+        }
+        .hidden-char { color: var(--term-dim); }
+        .revealed-char { color: var(--term-green); text-shadow: var(--term-glow); }
+
+        /* --- PHASE 1: TIMING BAR --- */
+        #timing-bar-container {
+            margin-top: 40px;
+            border: 1px solid var(--term-dim);
+            height: 40px;
+            position: relative;
+            background: #001100;
+            overflow: hidden;
+        }
+
+        #target-zone {
+            position: absolute;
+            left: 50%; 
+            top: 0;
+            bottom: 0;
+            width: 60px; 
+            transform: translateX(-50%);
+            background-color: rgba(0, 255, 65, 0.2);
+            border-left: 2px solid var(--term-green);
+            border-right: 2px solid var(--term-green);
+            z-index: 1;
+        }
+
+        #cursor {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 15px;
+            background-color: var(--term-green);
+            box-shadow: var(--term-glow);
+            z-index: 2;
+        }
+
+        /* --- PHASE 2: HEX GRID --- */
+        #hex-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 8px;
+            margin-top: 20px;
+        }
+        .hex-cell {
+            padding: 8px 0;
+            border: 1px solid var(--term-dim);
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .hex-cell:hover { background-color: var(--term-green); color: #000; }
+        
+        #hex-target-container { margin-bottom: 15px; font-size: 1.2rem; }
+
+        /* --- UTILS --- */
+        .status-msg { height: 1.5rem; margin-top: 20px; color: var(--term-green); }
+        
+        @keyframes flicker {
+            0% { opacity: 0.9; } 5% { opacity: 0.8; } 10% { opacity: 0.9; } 100% { opacity: 0.95; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scanlines"></div>
+    <div class="glow-layer"></div>
+
+    <div id="game-container">
+        <h1>// BRUTE FORCE //</h1>
+        
+        <div class="hud-row">
+            <span id="phase-indicator">PHASE 1: SIGNAL INTERCEPT</span>
+            <span id="timer">--:--</span>
+        </div>
+
+        <div id="password-display"></div>
+
+        <div id="phase-1-ui">
+            <div id="timing-bar-container">
+                <div id="target-zone"></div>
+                <div id="cursor"></div>
+            </div>
+            <p style="margin-top: 10px; font-size: 0.9rem;">ATTEMPTS REMAINING: <span id="attempts-display" style="color: #fff">5</span></p>
+        </div>
+
+        <div id="phase-2-ui" style="display: none;">
+            <div id="hex-target-container"></div>
+            <div id="hex-grid"></div>
+        </div>
+
+        <div class="status-msg" id="status-msg">WAITING FOR INPUT...</div>
+    </div>
+
+    <script>
+        // --- CONFIG ---
+        const PASSWORD_LIST = [
+            "Password123!",
+            "Totally$ecure",
+            "qwerty12345",
+            "!admin123!",
+            "1234567890!"
+        ];
+        // Select random password
+        const PASSWORD = PASSWORD_LIST[Math.floor(Math.random() * PASSWORD_LIST.length)];
+        
+        const MAX_P1_ATTEMPTS = 5;
+        const CURSOR_SPEED = 20; // CHANGED: Significantly faster
+        const P2_TIME_LIMIT = 45; // Seconds to complete Phase 2
+
+        // --- STATE ---
+        let revealedMask = Array(PASSWORD.length).fill(false);
+        let cursorPosition = 0;
+        let direction = 1; 
+        let gameRunning = true;
+        let phase = 1;
+        let p1Attempts = 0;
+        
+        // Phase 2 state
+        let hexTarget = "";
+        let hexWinCount = 0; 
+        let hexSolved = 0;
+        let timerInterval;
+        let timeRemaining = P2_TIME_LIMIT;
+
+        // --- DOM ---
+        const container = document.getElementById('game-container');
+        const cursorEl = document.getElementById('cursor');
+        const targetZone = document.getElementById('target-zone');
+        const timingContainer = document.getElementById('timing-bar-container');
+        const passwordDisplay = document.getElementById('password-display');
+        const statusEl = document.getElementById('status-msg');
+        const attemptsDisplay = document.getElementById('attempts-display');
+        const timerEl = document.getElementById('timer');
+        
+        let containerWidth = timingContainer.offsetWidth;
+
+        // ==========================================
+        // INIT
+        // ==========================================
+        function init() {
+            renderPassword();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ==========================================
+        // PASSWORD RENDERER
+        // ==========================================
+        function renderPassword() {
+            passwordDisplay.innerHTML = '';
+            for (let i = 0; i < PASSWORD.length; i++) {
+                const span = document.createElement('span');
+                if (revealedMask[i]) {
+                    span.textContent = PASSWORD[i];
+                    span.className = 'revealed-char';
+                } else {
+                    span.textContent = '*';
+                    span.className = 'hidden-char';
+                }
+                passwordDisplay.appendChild(span);
+            }
+        }
+
+        function revealRandomLetter() {
+            let hiddenIndices = [];
+            revealedMask.forEach((val, index) => {
+                if (!val) hiddenIndices.push(index);
+            });
+
+            if (hiddenIndices.length > 0) {
+                const randomIndex = hiddenIndices[Math.floor(Math.random() * hiddenIndices.length)];
+                revealedMask[randomIndex] = true;
+                renderPassword();
+                return true; 
+            }
+            return false;
+        }
+
+        // ==========================================
+        // PHASE 1: TIMING
+        // ==========================================
+        function gameLoop() {
+            if (!gameRunning || phase !== 1) return;
+
+            containerWidth = timingContainer.offsetWidth;
+            const cursorWidth = 15;
+
+            // Move
+            cursorPosition += CURSOR_SPEED * direction;
+
+            // Bounce
+            if (cursorPosition >= (containerWidth - cursorWidth) || cursorPosition <= 0) {
+                direction *= -1;
+            }
+
+            cursorEl.style.left = cursorPosition + 'px';
+            requestAnimationFrame(gameLoop);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && phase === 1 && gameRunning) {
+                handlePhase1Attempt();
+            }
+        });
+
+        function handlePhase1Attempt() {
+            p1Attempts++;
+            attemptsDisplay.textContent = (MAX_P1_ATTEMPTS - p1Attempts);
+
+            const cursorRect = cursorEl.getBoundingClientRect();
+            const zoneRect = targetZone.getBoundingClientRect();
+
+            // Check overlap
+            const isHit = !(cursorRect.right < zoneRect.left || 
+                            cursorRect.left > zoneRect.right);
+
+            if (isHit) {
+                revealRandomLetter();
+                statusEl.textContent = "PACKET INTERCEPTED";
+                triggerVisualFeedback(true);
+            } else {
+                statusEl.textContent = "SIGNAL MISSED - ATTEMPT LOST";
+                triggerVisualFeedback(false);
+            }
+
+            if (p1Attempts >= MAX_P1_ATTEMPTS) {
+                transitionToPhase2();
+            }
+        }
+
+        // ==========================================
+        // PHASE 2: HEX GRID
+        // ==========================================
+        function transitionToPhase2() {
+            phase = 2;
+            
+            const hiddenCount = revealedMask.filter(v => v === false).length;
+            
+            if (hiddenCount === 0) {
+                winGame();
+                return;
+            }
+
+            hexWinCount = hiddenCount;
+            hexSolved = 0;
+
+            statusEl.textContent = "FIREWALL BREACH FAILED. MANUAL OVERRIDE REQUIRED.";
+            document.getElementById('phase-indicator').textContent = "PHASE 2: DECRYPTION";
+            
+            document.getElementById('phase-1-ui').style.display = 'none';
+            document.getElementById('phase-2-ui').style.display = 'block';
+
+            startTimer();
+            generateHexRound();
+        }
+
+        function startTimer() {
+            timerEl.textContent = `00:${timeRemaining < 10 ? '0'+timeRemaining : timeRemaining}`;
+            
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                
+                if(timeRemaining <= 10) {
+                    timerEl.classList.add('danger-text');
+                }
+
+                timerEl.textContent = `00:${timeRemaining < 10 ? '0'+timeRemaining : timeRemaining}`;
+
+                if (timeRemaining <= 0) {
+                    gameOver();
+                }
+            }, 1000);
+        }
+
+        function generateHexRound() {
+            const gridEl = document.getElementById('hex-grid');
+            const targetContainer = document.getElementById('hex-target-container');
+            gridEl.innerHTML = '';
+
+            const chars = "0123456789ABCDEF";
+            let gridData = [];
+            for(let i=0; i<32; i++) {
+                let code = chars[Math.floor(Math.random()*16)] + chars[Math.floor(Math.random()*16)];
+                gridData.push(code);
+            }
+
+            hexTarget = gridData[Math.floor(Math.random() * gridData.length)];
+            
+            targetContainer.innerHTML = `
+                FIND: <span style="background:var(--term-green); color:#000; padding: 2px 5px;">${hexTarget}</span> 
+                <span style="font-size:0.8rem; float:right">REMAINING: ${hexWinCount - hexSolved}</span>
+            `;
+
+            gridData.forEach(code => {
+                const cell = document.createElement('div');
+                cell.className = 'hex-cell';
+                cell.textContent = code;
+                
+                cell.onclick = () => {
+                    if(code === hexTarget) {
+                        hexSolved++;
+                        revealRandomLetter(); 
+                        triggerVisualFeedback(true);
+                        
+                        if(hexSolved >= hexWinCount) {
+                            winGame();
+                        } else {
+                            generateHexRound();
+                        }
+                    } else {
+                        timeRemaining = Math.max(0, timeRemaining - 2);
+                        triggerVisualFeedback(false);
+                        statusEl.textContent = "INVALID HEX - TIME PENALTY";
+                    }
+                };
+                gridEl.appendChild(cell);
+            });
+        }
+
+        // ==========================================
+        // UTILS
+        // ==========================================
+        function triggerVisualFeedback(success) {
+            const body = document.body;
+            const originalColor = "var(--bg-color)";
+            
+            if (success) {
+                body.style.backgroundColor = "#002200"; 
+            } else {
+                body.style.backgroundColor = "#330000"; 
+            }
+            setTimeout(() => { body.style.backgroundColor = originalColor; }, 100);
+        }
+
+        function winGame() {
+            clearInterval(timerInterval);
+            container.innerHTML = `
+                <h1 style="color:#fff; font-size:3rem">ACCESS GRANTED</h1>
+                <p>ROOT PRIVILEGES RESTORED</p>
+                <div style="margin-top:20px; color:var(--term-green); border:1px solid var(--term-green); padding:10px;">
+                    ${PASSWORD}
+                </div>
+                <button onclick="location.reload()" style="margin-top:30px; background:transparent; border:1px solid #fff; color:#fff; padding:10px 20px; cursor:pointer; font-family:inherit;">SYSTEM REBOOT</button>
+            `;
+            document.body.style.backgroundColor = "#001100";
+        }
+
+        function gameOver() {
+            clearInterval(timerInterval);
+            gameRunning = false;
+            container.innerHTML = `
+                <h1 style="color:var(--err-red); font-size:3rem">SYSTEM LOCKDOWN</h1>
+                <p>TRACE COMPLETE. CONNECTION TERMINATED.</p>
+                <button onclick="location.reload()" style="margin-top:30px; background:transparent; border:1px solid var(--err-red); color:var(--err-red); padding:10px 20px; cursor:pointer; font-family:inherit;">RETRY INTRUSION</button>
+            `;
+            document.body.style.backgroundColor = "#110000";
+        }
+
+        init();
+
+    </script>
+</body>
+</html>
