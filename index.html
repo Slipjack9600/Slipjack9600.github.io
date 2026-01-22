@@ -31,14 +31,13 @@
             flex-direction: column;
             min-height: 100vh;
             align-items: center;
-            justify-content: center;
         }
 
         /* Container for main content */
         .container {
             width: 100%;
-            max-width: 800px;
-            padding: 2rem;
+            max-width: 900px;
+            padding: 4rem 2rem;
             text-align: center;
         }
 
@@ -53,6 +52,15 @@
             letter-spacing: -0.025em;
         }
 
+        .section-title {
+            text-align: left;
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem 0;
+            color: var(--text-primary);
+            border-bottom: 1px solid #334155;
+            padding-bottom: 0.5rem;
+        }
+
         p.subtitle {
             color: var(--text-secondary);
             font-size: 1.1rem;
@@ -61,9 +69,10 @@
         /* Grid for Links */
         .link-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
             gap: 1.5rem;
             width: 100%;
+            margin-bottom: 3rem;
         }
 
         /* Card Styles */
@@ -74,7 +83,7 @@
             padding: 1.5rem;
             text-decoration: none;
             color: inherit;
-            transition: transform 0.2s ease, border-color 0.2s ease;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
             display: flex;
             flex-direction: column;
             align-items: flex-start;
@@ -82,8 +91,9 @@
         }
 
         .card:hover {
-            transform: translateY(-2px);
+            transform: translateY(-3px);
             border-color: var(--accent);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
         }
 
         .card h2 {
@@ -100,7 +110,8 @@
 
         /* Footer */
         footer {
-            margin-top: 4rem;
+            margin-top: auto;
+            padding: 2rem;
             color: var(--text-secondary);
             font-size: 0.8rem;
         }
@@ -127,9 +138,44 @@
     <div class="container">
         <header>
             <h1>System Status: <span style="color:var(--accent)">Online</span><span class="cursor"></span></h1>
-            <p class="subtitle">This domain is currently parked. Check out these resources in the meantime.</p>
+            <p class="subtitle">Personal projects and security research laboratory.</p>
         </header>
 
+        <h2 class="section-title">Active Projects</h2>
+        
+        <div class="link-grid">
+            <a href="hackle.html" class="card">
+                <h2>Hackle</h2>
+                <p>A word-based hacking puzzle. Decrypt the sequence before lockout.</p>
+            </a>
+
+            <a href="theworm.html" class="card">
+                <h2>The Worm</h2>
+                <p>Navigate the network and consume data packets in this arcade classic.</p>
+            </a>
+
+            <a href="crack-the-pass.html" class="card">
+                <h2>Crack the Pass</h2>
+                <p>Test your brute-force logic in this password cracking simulation.</p>
+            </a>
+
+            <a href="darknet-trader.html" class="card">
+                <h2>Darknet Trader</h2>
+                <p>An economy sim based on the underground digital marketplace.</p>
+            </a>
+
+            <a href="qr-code.html" class="card">
+                <h2>QR Generator</h2>
+                <p>Secure, client-side QR code generation for payloads and links.</p>
+            </a>
+
+            <a href="subnet-calculator.html" class="card">
+                <h2>Subnet Calc</h2>
+                <p>Quick IPv4 subnetting tool for network architecture and CTFs.</p>
+            </a>
+        </div>
+
+        <h2 class="section-title">Learning Resources</h2>
         <div class="link-grid">
             <a href="https://www.hackerone.com/" target="_blank" class="card">
                 <h2>HackerOne</h2>
