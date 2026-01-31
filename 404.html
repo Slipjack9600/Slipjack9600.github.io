@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow" />
+    <title>404 Error</title>
+    <style>
+        /* CSS Reset and Basic Variables */
+        :root {
+            --bg-color: #0f172a;       /* Dark Blue/Slate Background */
+            --card-bg: #1e293b;        /* Slightly lighter card background */
+            --text-primary: #f8fafc;   /* Almost white text */
+            --text-secondary: #94a3b8; /* Muted gray text */
+            --accent: #38bdf8;         /* Cyan/Blue accent color */
+            --accent-hover: #0ea5e9;   /* Darker accent for hover */
+            --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            align-items: center;
+        }
+
+        /* Container for main content */
+        .container {
+            width: 100%;
+            max-width: 900px;
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        /* Header Styles */
+        header {
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        .section-title {
+            text-align: left;
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem 0;
+            color: var(--text-primary);
+            border-bottom: 1px solid #334155;
+            padding-bottom: 0.5rem;
+        }
+
+        p.subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        /* Grid for Links */
+        .link-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.5rem;
+            width: 100%;
+            margin-bottom: 3rem;
+        }
+
+        /* Card Styles */
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            border-color: var(--accent);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--accent);
+        }
+
+        .card p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: auto;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        /* Utility: Terminal-like cursor effect */
+        .cursor::after {
+            content: '_';
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            h1 { font-size: 2rem; }
+            .container { padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>404 Error: <span style="color:var(--accent)">Page not found</span><span class="cursor"></span></h1>
+            <p class="subtitle">Personal projects and security research laboratory.</p>
+        </header>
+
+        <h2 class="section-title">Active Projects</h2>
+        
+        <div class="link-grid">
+            <a href="index.html" class="card">
+                <h2>Home Page</h2>
+                <p>Go to my home page.</p>
+            </a>
+
+            <a href="https://clicktheredbutton.com" class="card">
+                <h2>Go Somewhere Else</h2>
+                <p>Take me to the big red button.</p>
+            </a>
+
+            <a href="https://shop.hak5.com" class="card">
+                <h2>Hak5</h2>
+                <p>Check out some pentest tools.</p>
+            </a>
+        </div>
+
+        <footer>
+            &copy; <script>document.write(new Date().getFullYear())</script> Localhost Operations
+        </footer>
+    </div>
+
+</body>
+</html>
